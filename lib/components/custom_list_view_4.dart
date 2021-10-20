@@ -3,8 +3,11 @@ import 'package:flutter/material.dart';
 //4.Define seperate list widget and use it as template
 Widget customListView_4({
   String title,
-  String singer,
-  String image,
+  String cat_id,
+  String total_song,
+  bool is_active,
+  String image_url,
+
   onTap,
 }) {
   return InkWell(
@@ -13,50 +16,32 @@ Widget customListView_4({
         padding: EdgeInsets.all(16.0),
         child: Container(
           width: 150.0,
-
-          color: Colors.transparent,
           child: Container(
               decoration: BoxDecoration(
                   image: DecorationImage(
-                    image: AssetImage("assets/ver_rect.jpg"),
+                    image: AssetImage(image_url),
                     fit: BoxFit.cover,
                   ),
                   borderRadius: BorderRadius.all(Radius.circular(10.0))
               ),
-              child: new Center(
-                child:  Row(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(0, 150, 0, 0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.all(12.0),
-                          child: Text(
-                            title,
-                            style: TextStyle(
-                                color: Colors.black87,
-                                fontWeight: FontWeight.normal,
-                                fontSize: 20.0
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      ],
+                    Text(
+                      title,
+                      style: TextStyle(
+                          color: image_url.contains("img_med.jpg")?Colors.white: Color(int.parse("0xff6faff2")),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 20.0
+                      ),
+                      textAlign: TextAlign.center,
                     ),
-                    /*Spacer(),
-                    Icon(
-                      Icons.keyboard_arrow_right,
-                      color: Colors.black87.withOpacity(0.6),
-                      size: 32.0,
-                    )*/
                   ],
                 ),
-
               )),
         ),
-
-
       ),
   );
 }

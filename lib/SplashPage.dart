@@ -22,15 +22,17 @@ class _SplashState extends State<Splash> {
     gotonext();
   }
 
+
   @override
   Widget build(BuildContext context) {
     return Container(
       child: Image.asset(
-        'assets/musicicon.jpg',
-        fit: BoxFit.cover,
+        'assets/image_1.jpg',
+        fit: BoxFit.fill,
       ),
     );
   }
+
 
   gotonext() async {
     setState(() {

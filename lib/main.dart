@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
-
+import 'package:in_app_purchase/in_app_purchase.dart';
 import 'SplashPage.dart';
 
 
 void main() {
+
   runApp(MyApp());
 }
 

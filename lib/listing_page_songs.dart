@@ -175,7 +175,7 @@ class _listing_page_songsState extends State<listing_page_songs> {
                       },
 
                       title: musics[index].title,
-                      singer: musics[index].singer,
+                      albumname: musics[index].singer,
                       image: musics[index].image,
                     )),
           ),

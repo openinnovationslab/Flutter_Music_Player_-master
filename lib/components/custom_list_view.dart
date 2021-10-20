@@ -3,14 +3,15 @@ import 'package:flutter/material.dart';
 //4.Define seperate list widget and use it as template
 Widget customListView({
   String title,
-  String singer,
+  String albumname,
   String image,
+  String tap,
   onTap,
 }) {
   return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: EdgeInsets.all(20.0),
+        padding: EdgeInsets.fromLTRB(8.0,8,8.0,8.0),
         child: Row(
           children: [
             /*Stack(children: [
@@ -42,27 +43,29 @@ Widget customListView({
                 Text(
                   title,
                   style: TextStyle(
-                      color: Colors.white60,
+                      color: Colors.white,
                       fontWeight: FontWeight.normal,
-                      fontSize: 15.0
+                      fontSize: 13.0
                   ),
                 ),
                 SizedBox(height: 8.0),
                 Text(
-                  singer,
+                  albumname,
                   style: TextStyle(
                       color: Colors.white.withOpacity(0.5), fontSize: 12.0),
                 ),
               ],
             ),
             Spacer(),
-            Icon(
-              Icons.play_arrow,
+            /*Icon(
+              tap == "0" ? Icons.play_arrow : Icons.bar_chart_sharp,
               color: Colors.white.withOpacity(0.6),
               size: 16.0,
-            )
+            )*/
           ],
         ),
       ),
+
+
   );
 }

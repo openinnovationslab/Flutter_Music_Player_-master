@@ -146,6 +146,7 @@ class _DetailPageState extends State<DetailPage> {
                 SizedBox(
                   height: 42.0,
                 ),
+
                 Slider.adaptive(
                   //change value after 11 step, and add min and max
                   value: position.inSeconds.toDouble(),
@@ -153,6 +154,7 @@ class _DetailPageState extends State<DetailPage> {
                   max: duration.inSeconds.toDouble(),
                   onChanged: (value) {},
                 ),
+
                 Spacer(),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,

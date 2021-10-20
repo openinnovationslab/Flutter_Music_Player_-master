@@ -1,22 +1,32 @@
+import 'dart:convert';
+
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_music_in_background/components/custom_list_view.dart';
 import 'package:flutter_music_in_background/model/Musics.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:marquee/marquee.dart';
 import 'DetailPage.dart';
-
+import 'package:http/http.dart' as http;
 
 
 
 class listing_page_songs_2 extends StatefulWidget {
+  String songName, album, songPath, albumImage, cat_name;
+  int index_val;
+  listing_page_songs_2({this.songName, this.album, this.songPath, this.albumImage, this.cat_name, this.index_val});
+
   @override
   _listing_page_songsState_2 createState() => _listing_page_songsState_2();
 }
 
-class _listing_page_songsState_2 extends State<listing_page_songs_2> {
-  var str_title="",str_singer="", str_url="";
+class _listing_page_songsState_2 extends State<listing_page_songs_2>
+{
+
+  var str_title="",str_albumname="", str_url="", str_albumimagepath="", str_tap="";
+  double val_pos;
   IconData btnIcon = Icons.play_arrow;
   //var bgColor=  const Color(0xFF03174C);
   var iconHoverColor = const Color(0xFF065BC3);
@@ -24,104 +34,208 @@ class _listing_page_songsState_2 extends State<listing_page_songs_2> {
   Duration duration = new Duration();
   Duration position = new Duration();
 
+  //val_pos = position.inSeconds.toDouble();
+
   //9.Now add music player
   AudioPlayer audioPlayer = new AudioPlayer(mode: PlayerMode.MEDIA_PLAYER);
   bool isPlaying = false;
   String currentSong = "";
 
-  List musics;
+  List<songlist> list_song = [];
+  int tappedIndex;
+  bool isLoading = false;
+
+  int _selectedIndex = 0;
+
+  _onSelected(int index) {
+    setState(() => _selectedIndex = index);
+  }
 
   @override
   void initState() {
-    musics = getList();
+    super.initState();
 
+    //audioPlayer.stop();
+    //print("val->"+widget.index_val.toString());
+    tappedIndex = 0;
+    getdata();
     setState(() {
-      str_title = musics[0].title;
-      str_singer = musics[0].singer;
-      str_url = musics[0].url;
+      str_title = widget.songName;
+      str_albumname = widget.album;
+      str_url = widget.songPath;
+      str_albumimagepath = widget.albumImage;
+      //val_pos = position.inSeconds.toDouble();
+    });
+
+    playMusic(str_url);
+
+    audioPlayer.onPlayerCompletion.listen((event) {
+      setState(() {
+        position = duration;
+      });
+      if(position.inSeconds==duration.inSeconds && position.inMinutes==duration.inMinutes)
+      {
+        print("Condition true, next song play");
+        //Just for test
+        if(widget.index_val < list_song.length)
+        {
+          print("index->complete"+widget.index_val.toString());
+          widget.index_val = widget.index_val+1;
+          if(widget.index_val >= list_song.length)
+          {
+            // nothing do
+          }
+          else{
+             // do work
+            String url;
+            setState(() {
+              str_title = list_song[widget.index_val].songName;
+              str_albumname = list_song[widget.index_val].album;
+              str_url = list_song[widget.index_val].songPath;
+              str_albumimagepath= list_song[widget.index_val].albumImage;
+            });
+
+            /*if(isPlaying)
+          {
+            audioPlayer.stop();
+            setState(() {
+              btnIcon = Icons.play_arrow;
+              isPlaying = false;
+            });
+          }else{
+            audioPlayer.resume();
+            setState(() {
+              btnIcon = Icons.pause;
+              isPlaying = true;
+            });
+          }*/
+            audioPlayer.stop();
+            setState(() {
+              btnIcon = Icons.play_arrow;
+              isPlaying = false;
+              seekToSecond(0);
+            });
+
+
+            Future.delayed(Duration(milliseconds: 800), () {
+              // Do something
+              print("url=>"+str_url);
+              playMusic(str_url);
+            });
+
+          }
+        }
+      }
+
     });
 
 
-    super.initState();
   }
 
-  List getList() {
-    return [
-      Musics(
-          title: "Uptown Funk",
-          singer: "One Republic",
-          url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
-          image:
-              "https://img.mensxp.com/media/content/2020/Apr/Leading-B-Wood-Singers-Who-Lost-On-Reality-Shows8_5ea7d4f04e41e.jpeg"),
-      Musics(
-        title: "Black Space",
-        singer: "Sia",
-        url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
-        image:
-            "https://img.mensxp.com/media/content/2020/Apr/Leading-B-Wood-Singers-Who-Lost-On-Reality-Shows10_5ea7d51d28f24.jpeg",
-      ),
-      Musics(
-        title: "Shake it off",
-        singer: "Coldplay",
-        url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3",
-        image:
-            "https://img.mensxp.com/media/content/2020/Apr/Leading-B-Wood-Singers-Who-Lost-On-Reality-Shows2_5ea7d47403432.jpeg",
-      ),
-      Musics(
-          title: "Lean On",
-          singer: "T. Schürger",
-          url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3",
-          image:
-              "https://i.pinimg.com/originals/ea/60/26/ea60268f4374e8840c4529ee1462fa38.jpg"),
-      Musics(
-          title: "Sugar",
-          singer: "Adele",
-          url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3",
-          image:
-              "https://img.mensxp.com/media/content/2020/Apr/Leading-B-Wood-Singers-Who-Lost-On-Reality-Shows7_5ea7d4db364a2.jpeg"),
-      Musics(
-          title: "Believer",
-          singer: "Ed Sheeran",
-          url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3",
-          image:
-              "https://img.mensxp.com/media/content/2020/Apr/Leading-B-Wood-Singers-Who-Lost-On-Reality-Shows6_5ea7d4c7225c1.jpeg"),
-      Musics(
-          title: "Stressed out",
-          singer: "Mark Ronson",
-          url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3",
-          image:
-              "https://i.pinimg.com/originals/7c/a1/08/7ca1080bde6228e9fb8460915d36efdd.jpg"),
-      Musics(
-          title: "Girls Like You",
-          singer: "Maroon 5",
-          url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3",
-          image:
-              "https://i.pinimg.com/originals/1b/b8/55/1bb8552249faa2f89ffa0d762d87088d.jpg"),
-      Musics(
-          title: "Let her go",
-          singer: "Passenger",
-          url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-9.mp3",
-          image:
-              "https://64.media.tumblr.com/5b7c0f14e4e50922ccc024573078db42/15bda826b481de6f-5a/s1280x1920/b26b182f789ef7bb7be15b037e2e687b0fbc437d.jpg"),
-      Musics(
-          title: "Roar",
-          singer: "Katy Perry",
-          url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-10.mp3",
-          image:
-              "https://cdn2.stylecraze.com/wp-content/uploads/2013/11/Jesus-On-Her-Wrist.jpg.webp"),
-    ];
+
+  Future<void> getdata() async
+  {
+    setState(() {
+      isLoading = true;
+    });
+
+    var response = await http.post(Uri.parse("http://15.206.220.241:83/api/GetCatSongs"),  body: {
+      'GameName': widget.cat_name
+    });
+
+    var jsonData = jsonDecode(response.body);
+    print("list Response List----->" + response.body);
+
+    if (response.statusCode == 200) {
+      List JsonData = jsonData['songList'];
+
+      JsonData.forEach((element)
+      {
+        setState(() {
+          list_song.add(songlist(
+            element["songId"],
+            element["songName"],
+            element["album"],
+            element["albumImage"],
+            element["songPath"]
+
+          ));
+          isLoading = false;
+        } );
+
+      });
+
+      /*for(int i=0;i<list_song.length;i++)
+      {
+        print(list_song[i].songName);
+      }*/
+
+    }
+    else{
+
+      print(response.reasonPhrase);
+      var msg = jsonData['msg'];
+
+      Fluttertoast.showToast(
+          msg: msg,
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.BOTTOM,
+          timeInSecForIosWeb: 1,
+          backgroundColor: Colors.white,
+          textColor: Colors.black,
+          fontSize: 15.0);
+
+      setState(() {
+        isLoading = false;
+        Navigator.of(context).pop();
+        list_song.clear();
+      });
+
+      return false;
+    }
+    //print("url==>"+musics[0].image_url);
+  }
+
+  void seekToSecond(int second) {
+    Duration newDuration = Duration(seconds: second);
+    audioPlayer.seek(newDuration);
+
+  }
+
+
+  void seekToSecond_2(int second) {
+    Duration newDuration = Duration(seconds: second);
+    position = newDuration;
+    duration = newDuration;
+    audioPlayer.seek(newDuration);
+    //position=0;
+    //duration=0
+
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return WillPopScope(
+        onWillPop: () {
+      print('Backbutton pressed (device or appbar button), do whatever you want.');
+      //audioPlayer.stop();
+
+      //trigger leaving and use own data
+      Navigator.pop(context, false);
+
+      //we need to return a future
+      return Future.value(false);
+    },
+
+
+    child: Scaffold(
         //backgroundColor: const Color(0xFF03174C),
         appBar: AppBar(
           backgroundColor: const Color(0xFF000c24),
           title: Text(
-            "Songs",
+            "Song",
             style: TextStyle(
-                color: Colors.white70,
+                color: Colors.white,
                 fontStyle: FontStyle.italic,
                 fontSize: 20.0),
           ),
@@ -129,15 +243,14 @@ class _listing_page_songsState_2 extends State<listing_page_songs_2> {
         body: Container(
           decoration: BoxDecoration(
             image: DecorationImage(
-              image: AssetImage("assets/imgae.jpg"),
+              image: AssetImage("assets/image.jpg"),
               fit: BoxFit.cover,
             ),
           ),
           child: Column(
-             // mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-
             Container(
+                  //color: Colors.red,
                   child: Column(
                     children: [
                       Padding(
@@ -147,8 +260,9 @@ class _listing_page_songsState_2 extends State<listing_page_songs_2> {
                           width: 120.0,
                           decoration: BoxDecoration(
                             image: DecorationImage(
-                              image: AssetImage(
-                                  'assets/musicicon.jpg'),
+                              image: NetworkImage(
+                                str_albumimagepath,
+                              ),
                               fit: BoxFit.fill,
                             ),
                             shape: BoxShape.rectangle,
@@ -161,7 +275,7 @@ class _listing_page_songsState_2 extends State<listing_page_songs_2> {
 
             Container(
                 //color: Colors.yellow,
-                height: MediaQuery.of(context).size.height*0.28,
+                height: MediaQuery.of(context).size.height*0.32,
                 child: Column(
                   children: [
                     Padding(
@@ -173,13 +287,11 @@ class _listing_page_songsState_2 extends State<listing_page_songs_2> {
                             Container(
                              child: Column(
                              children: [
-
                             Padding(
                               padding: const EdgeInsets.only(left: 0, top: 1, bottom: 0),
                               child: Row(
                                mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                               // _buildMarquee(str_title)
                                  Text(str_title,
                                       style: TextStyle(
                                           color: Colors.white,
@@ -192,13 +304,12 @@ class _listing_page_songsState_2 extends State<listing_page_songs_2> {
                             Padding(
                               padding: const EdgeInsets.only(left: 0, top: 2.5, bottom: 0),
                               child: Text(
-                                /*widget.mMusic.singer*/str_singer,
+                                /*widget.mMusic.singer*/str_albumname,
                                 style: TextStyle(
                                     color: Colors.white.withOpacity(0.6),
                                     fontSize: 18.0),
                               ),
                             ),
-
                           ],
                         ),
                             )
@@ -213,16 +324,86 @@ class _listing_page_songsState_2 extends State<listing_page_songs_2> {
                         value: position.inSeconds.toDouble(),
                         min: 0.0,
                         max: duration.inSeconds.toDouble(),
-                        onChanged: (value) {},
+                        onChanged: (double value) {
+                           setState(() {
+                             value = value;
+                             seekToSecond(value.toInt());
+                           });
+                        },
                       ),
                     ),
+
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20.0,0,20,0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: <Widget>[
+                          /*Text(position.inMinutes.toString()+":" + position.inSeconds.toString()  ,
+                          style: TextStyle(color: Colors.white)),*/
+                          Text(position.toString().split(".")[0].toString()  ,
+                          style: TextStyle(color: Colors.white.withOpacity(0.5))),
+                          /*Text(duration.inMinutes.toString()+":" + duration.inSeconds.toString(),
+                          style: TextStyle(color: Colors.white))*/
+                          Text(duration.toString().split(".")[0].toString(),
+                              style: TextStyle(color: Colors.white.withOpacity(0.5)))
+
+                        ],
+                      ),
+                    ),
+
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: <Widget>[
-                        Icon(
-                          Icons.fast_rewind,
+                        IconButton(
+                          /*Icons.fast_forward,
                           color: Colors.white54,
-                          size: 32.0,
+                          size: 30.0,*/
+                            iconSize: 30.0,
+                            icon: Icon(Icons.fast_rewind),
+                            color: Colors.white54,
+                            onPressed: () {
+                              int a = audioPlayer.getCurrentPosition() as int;
+                              if(widget.index_val > 0)
+                              {
+                                widget.index_val = widget.index_val-1;
+                                print("index->rewind"+widget.index_val.toString());
+                                setState(() {
+                                  str_title = list_song[widget.index_val].songName;
+                                  str_albumname = list_song[widget.index_val].album;
+                                  str_url = list_song[widget.index_val].songPath;
+                                  str_albumimagepath= list_song[widget.index_val].albumImage;
+                                });
+
+                                /*if(isPlaying)
+                                {
+                                  audioPlayer.pause();
+                                  setState(() {
+                                    btnIcon = Icons.play_arrow;
+                                    isPlaying = false;
+                                  });
+                                }else{
+                                  audioPlayer.resume();
+                                  setState(() {
+                                    btnIcon = Icons.pause;
+                                    isPlaying = true;
+                                  });
+                                }*/
+
+                                audioPlayer.stop();
+                                setState(() {
+                                  btnIcon = Icons.play_arrow;
+                                  isPlaying = false;
+                                  seekToSecond_2(0);
+                                });
+
+                                Future.delayed(Duration(milliseconds: 500), () {
+                                  // Do something
+                                  print("url=>"+str_url);
+                                  playMusic_2(str_url);
+                                });
+
+                              }
+                            }
                         ),
                         SizedBox(width: 32.0),
                         Container(
@@ -234,22 +415,28 @@ class _listing_page_songsState_2 extends State<listing_page_songs_2> {
                               child: IconButton(
                                 onPressed: () {
                                   //10.lets Build the Pause button
-                                  playMusic(/*widget.mMusic.url*/str_url);
+
                                   if(isPlaying)
                                   {
+                                    print("hi");
                                     audioPlayer.pause();
                                     setState(() {
                                       btnIcon = Icons.play_arrow;
                                       isPlaying = false;
                                     });
-                                  }else{
+                                  }
+                                  else{
+                                    print("hi2");
                                     audioPlayer.resume();
                                     setState(() {
                                       btnIcon = Icons.pause;
                                       isPlaying = true;
                                     });
+
+                                    //playMusic(str_url);
                                   }
                                 },
+
                                 iconSize: 32.0,
                                 icon: Icon(btnIcon),
                                 color: Colors.white,
@@ -257,11 +444,66 @@ class _listing_page_songsState_2 extends State<listing_page_songs_2> {
                           ),
                         ),
                         SizedBox(width: 32.0),
-                        Icon(
-                          Icons.fast_forward,
+                        IconButton(
+                          /*Icons.fast_forward,
                           color: Colors.white54,
-                          size: 30.0,
-                        ),
+                          size: 30.0,*/
+                          iconSize: 30.0,
+                          icon: Icon(Icons.fast_forward),
+                          color: Colors.white54,
+                          onPressed: () {
+                            if(widget.index_val < list_song.length)
+                            {
+                              widget.index_val = widget.index_val+1;
+
+                              if(widget.index_val >= list_song.length)
+                              {
+                                // nothing do
+                              }
+                              else{
+                                //do
+                                print("index->forward->"+widget.index_val.toString());
+                                setState(() {
+                                  str_title = list_song[widget.index_val].songName;
+                                  str_albumname = list_song[widget.index_val].album;
+                                  str_url = list_song[widget.index_val].songPath;
+                                  str_albumimagepath= list_song[widget.index_val].albumImage;
+                                  //print("str_title"+str_title);
+                                });
+
+                                /*if(isPlaying)
+                              {
+                                audioPlayer.pause();
+                                setState(() {
+                                  btnIcon = Icons.play_arrow;
+                                  isPlaying = false;
+                                });
+                              }else{
+                                audioPlayer.resume();
+                                setState(() {
+                                  btnIcon = Icons.pause;
+                                  isPlaying = true;
+                                });
+                              }*/
+                                audioPlayer.stop();
+                                setState(() {
+                                  btnIcon = Icons.play_arrow;
+                                  isPlaying = false;
+                                  seekToSecond_2(0);
+                                });
+
+
+                                Future.delayed(Duration(milliseconds: 800), () {
+                                  // Do something
+                                  print("url=>"+str_url);
+                                  playMusic_2(str_url);
+                                });
+                              }
+
+                            }
+                          }
+                        )
+                       ,
                       ],
                     ),
                   ],
@@ -270,52 +512,75 @@ class _listing_page_songsState_2 extends State<listing_page_songs_2> {
             ),
 
             Container(
-                  //color: Colors.amber,
-                  height: MediaQuery.of(context).size.height*0.335,
                   //color: Colors.red,
-                  child: ListView.builder(
-                      itemCount: getList().length,
+                  height: MediaQuery.of(context).size.height*0.270,
+                  child: isLoading
+                      ? Center(
+                      child: CircularProgressIndicator(
+                      backgroundColor: Colors.white,
+                      valueColor: AlwaysStoppedAnimation(Colors.white),
+                      strokeWidth: 5,
+                      //semanticsValue: "Loading...",
+                    ),
+                  )
+                      :ListView.builder(
+                      itemCount: list_song.length,
                       itemBuilder: (context, index) => customListView(
                         onTap: () {
                           setState(() {
-                            str_title = musics[index].title;
-                            str_singer = musics[index].singer;
-                            str_url = musics[index].url;
+                            str_title = list_song[index].songName;
+                            str_albumname = list_song[index].album;
+                            str_url = list_song[index].songPath;
+                            str_albumimagepath= list_song[index].albumImage;
+
+                            //tappedIndex=index;
+                            widget.index_val = index;
+
+                            /*for(int i = 0; i<list_song.length; i++)
+                            {
+                              print("index=>"+index.toString());
+                              print("i==>"+i.toString());
+
+                              if(i == index)
+                              {
+                                list_song[index].tap = "1";
+                              }
+                              else{
+                                list_song[index].tap = "0";
+                              }
+
+                            }*/
+
+                          });
+                          audioPlayer.stop();
+                          setState(() {
+                            btnIcon = Icons.play_arrow;
+                            isPlaying = false;
+                            seekToSecond_2(0);
                           });
 
-                          /*Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) =>
-                                    DetailPage(mMusic: musics[index])),
-                          );*/
+                          Future.delayed(Duration(milliseconds: 800), () {
+                            // Do something
+                            print("url=>"+str_url);
+                            playMusic_2(str_url);
+                          });
 
                         },
-
-                        title: musics[index].title,
-                        singer: musics[index].singer,
-                        image: musics[index].image,
+                        title: list_song[index].songName,
+                        albumname: list_song[index].album,
+                        image: list_song[index].albumImage,
                       )),
                 ),
-
-
           ]),
-        ));
+        )));
   }
 
-
-  Widget _buildMarquee(String str) {
-    return Marquee(
-    text: str,
-    style:TextStyle(
-    color: Colors.white,
-    fontWeight: FontWeight.bold,
-    fontSize: 18.0) ,
-    );
-  }
 
   void playMusic(String url) async {
-    if (isPlaying && currentSong != url) {
+
+    if (isPlaying && currentSong != url)
+    {
+      print("==>"+"in if");
       audioPlayer.pause();
       int result = await audioPlayer.play(url);
       if (result == 1) {
@@ -323,7 +588,46 @@ class _listing_page_songsState_2 extends State<listing_page_songs_2> {
           currentSong = url;
         });
       }
-    } else if (!isPlaying) {
+    }
+    else if (!isPlaying) {
+      print("==>"+"in else");
+      print("=>"+url);
+      int result = await audioPlayer.play(url);
+      if (result == 1) {
+        setState(() {
+          isPlaying = true;
+          btnIcon = Icons.pause;
+          //from now we hear song
+        });
+      }
+    }
+
+    //11
+    audioPlayer.onDurationChanged.listen((event) {
+      setState(() {
+        duration = event;
+      });
+    });
+
+    audioPlayer.onAudioPositionChanged.listen((event) {
+      setState(() {
+        position = event;
+      });
+    });
+  }
+
+  void playMusic_2(String url) async {
+    if (isPlaying && currentSong != url)
+    {
+      audioPlayer.pause();
+      int result = await audioPlayer.play(url);
+      if (result == 1) {
+        setState(() {
+          currentSong = url;
+        });
+      }
+    }
+    else if (!isPlaying) {
       int result = await audioPlayer.play(url);
       if (result == 1) {
         setState(() {
@@ -345,5 +649,30 @@ class _listing_page_songsState_2 extends State<listing_page_songs_2> {
         position = event;
       });
     });
+
+
+
+
+
+
+
   }
+
+
+
+
+
+
 }
+
+class songlist {
+  String songId;
+  String songName;
+  String album;
+  String albumImage;
+  String songPath;
+  //String tap;
+  songlist(this.songId, this.songName, this.album, this.albumImage, this.songPath);
+
+}
+

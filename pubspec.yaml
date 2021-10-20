@@ -31,6 +31,14 @@ dependencies:
   audioplayers: ^0.19.0
   flutter_svg: ^0.21.0+1
   marquee: ^2.2.0
+  http: ^0.13.3
+  fluttertoast: ^8.0.8
+  audio_manager: ^0.8.1
+  audio_service: ^0.18.1
+  in_app_purchase: ^0.5.2
+  provider: ^4.3.1
+  flutter_inapp_purchase: ^0.6.7
+
 
 dev_dependencies:
   flutter_test:

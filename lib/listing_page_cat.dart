@@ -1,15 +1,34 @@
+import 'dart:convert';
+
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_inapp_purchase/flutter_inapp_purchase.dart';
+
 import 'package:flutter_music_in_background/components/custom_list_view.dart';
 import 'package:flutter_music_in_background/model/Musics.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+import 'package:in_app_purchase/in_app_purchase.dart';
+import 'package:provider/provider.dart';
 
 import 'DetailPage.dart';
 import 'components/custom_list_view_2.dart';
 import 'components/custom_list_view_3.dart';
 import 'listing_page_songs.dart';
 import 'listing_page_songs_2.dart';
+import 'package:http/http.dart' as http;
+
+import 'package:flutter/foundation.dart';
+
+
+
+
+
+import 'listing_page_songs_3.dart';
+
+
+
 
 /*void main() {
   runApp(MusicPlayer_list());
@@ -17,83 +36,105 @@ import 'listing_page_songs_2.dart';
 
 
 class MusicPlayer_list extends StatefulWidget {
+  String cat_name;
+  final String testID='gems_test';
+  MusicPlayer_list({this.cat_name} );
+
   @override
   _MusicPlayerState createState() => _MusicPlayerState();
 }
 
 class _MusicPlayerState extends State<MusicPlayer_list> {
-  List musics;
+  List<songlist> list_song = [];
+  bool isLoading = false;
+
   @override
   void initState() {
-    musics = getList();
     super.initState();
+    initPlatformState();
   }
 
-  List getList() {
-    return [
-      Musics(
-          title: "Uptown Funk",
-          singer: "One Republic",
-          url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
-          image:
-              "https://img.mensxp.com/media/content/2020/Apr/Leading-B-Wood-Singers-Who-Lost-On-Reality-Shows8_5ea7d4f04e41e.jpeg"),
-      Musics(
-        title: "Black Space",
-        singer: "Sia",
-        url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
-        image:
-            "https://img.mensxp.com/media/content/2020/Apr/Leading-B-Wood-Singers-Who-Lost-On-Reality-Shows10_5ea7d51d28f24.jpeg",
-      ),
-      Musics(
-        title: "Shake it off",
-        singer: "Coldplay",
-        url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3",
-        image:
-            "https://img.mensxp.com/media/content/2020/Apr/Leading-B-Wood-Singers-Who-Lost-On-Reality-Shows2_5ea7d47403432.jpeg",
-      ),
-      Musics(
-          title: "Lean On",
-          singer: "T. Schürger",
-          url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3",
-          image:
-              "https://i.pinimg.com/originals/ea/60/26/ea60268f4374e8840c4529ee1462fa38.jpg"),
-      Musics(
-          title: "Sugar",
-          singer: "Adele",
-          url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3",
-          image:
-              "https://img.mensxp.com/media/content/2020/Apr/Leading-B-Wood-Singers-Who-Lost-On-Reality-Shows7_5ea7d4db364a2.jpeg"),
-      Musics(
-          title: "Believer",
-          singer: "Ed Sheeran",
-          url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3",
-          image:
-              "https://img.mensxp.com/media/content/2020/Apr/Leading-B-Wood-Singers-Who-Lost-On-Reality-Shows6_5ea7d4c7225c1.jpeg"),
-      Musics(
-          title: "Stressed out",
-          singer: "Mark Ronson",
-          url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3",
-          image:
-              "https://i.pinimg.com/originals/7c/a1/08/7ca1080bde6228e9fb8460915d36efdd.jpg"),
-      Musics(
-          title: "Girls Like You",
-          singer: "Maroon 5",
-          url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3",
-          image:
-              "https://i.pinimg.com/originals/1b/b8/55/1bb8552249faa2f89ffa0d762d87088d.jpg"),
-      Musics(
-          title: "Let her go",
-          singer: "Passenger",
-          url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-9.mp3",
-          image:
-              "https://64.media.tumblr.com/5b7c0f14e4e50922ccc024573078db42/15bda826b481de6f-5a/s1280x1920/b26b182f789ef7bb7be15b037e2e687b0fbc437d.jpg"),
-      Musics(
-          title: "Roar",
-          singer: "Katy Perry",
-          url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-10.mp3",
-          image:
-              "https://cdn2.stylecraze.com/wp-content/uploads/2013/11/Jesus-On-Her-Wrist.jpg.webp"),
-    ];
+  Future<void> initPlatformState() async {
+    // prepare
+    var result = await FlutterInappPurchase.initConnection;
+    print('result: $result');
+    // If the widget was removed from the tree while the asynchronous platform
+    // message was in flight, we want to discard the reply rather than calling
+    // setState to update our non-existent appearance.
+    if (!mounted) return;
+    // refresh items for android
+    String msg = await FlutterInappPurchase.consumeAllItems;
+    print('consumeAllItems: $msg');
+
+    await getdata();
+  }
+
+
+  Future<Null> _buySong(String songid) async {
+    try {
+      PurchasedItem purchased = await FlutterInappPurchase.buyProduct(songid);
+      //PurchasedItem purchased = await FlutterInappPurchase.instance.requestPurchase(songid);
+      print(purchased);
+      String msg = await FlutterInappPurchase.consumeAllItems;
+      print('consumeAllItems: $msg');
+    } catch (error) {
+      print('$error');
+    }
+  }
+
+
+  Future<void> getdata() async
+  {
+    print("name"+widget.cat_name);
+    setState(() {
+      isLoading = true;
+    });
+
+    var response = await http.post(Uri.parse("http://15.206.220.241:83/api/GetCatSongs"),  body: {
+      'GameName': widget.cat_name
+    });
+    var jsonData = jsonDecode(response.body);
+    //print("list Response List----->" + response.body);
+
+    if (response.statusCode == 200) {
+      List JsonData = jsonData['songList'];
+
+      JsonData.forEach((element)
+      {
+        setState(() {
+          list_song.add(songlist(
+              element["songId"],
+              element["songName"],
+              element["album"],
+              element["albumImage"],
+              element["songPath"],
+          ));
+          isLoading = false;
+        } );
+
+      });
+    }
+    else{
+
+      print(response.reasonPhrase);
+      var msg = jsonData['msg'];
+
+      Fluttertoast.showToast(
+          msg: msg,
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.BOTTOM,
+          timeInSecForIosWeb: 1,
+          backgroundColor: Colors.white,
+          textColor: Colors.black,
+          fontSize: 15.0);
+
+      setState(() {
+        isLoading = false;
+        Navigator.of(context).pop();
+        list_song.clear();
+      });
+      return false;
+    }
   }
 
   @override
@@ -102,42 +143,66 @@ class _MusicPlayerState extends State<MusicPlayer_list> {
         //backgroundColor: const Color(0xFF03174C),
         appBar: AppBar(
           backgroundColor: const Color(0xFF000c24),
-          title: Text(
-            "Songs Category",
-            style: TextStyle(
-                color: Colors.white70,
-                fontStyle: FontStyle.italic,
-                fontSize: 20.0),
-          ),
-        ),
+          title: new Text(
+              "Song List",
+              style: TextStyle(
+                  color: Colors.white,
+                  fontStyle: FontStyle.normal,
+                  fontSize: 20.0),
+                  )),
         body: Container(
           child: Container(
             decoration: BoxDecoration(
               image: DecorationImage(
-                image: AssetImage("assets/imgae.jpg"),
+                image: AssetImage("assets/image.jpg"),
                 fit: BoxFit.cover,
               ),
             ),
-            child: ListView.builder(
-                itemCount: getList().length,
+            child: isLoading
+                ? Center(
+                child: CircularProgressIndicator(
+                backgroundColor: Colors.white,
+                valueColor: AlwaysStoppedAnimation(Colors.white),
+                strokeWidth: 5,
+                ),
+              )
+                : ListView.builder(
+                itemCount: list_song.length,
                 shrinkWrap: false,
                 itemBuilder: (context, index) => customListView_3(
                       onTap: () {
-                        Navigator.push(
+                        _buySong(list_song[index].songId);
+                        //_buyProduct(list_song[index].songId);
+
+                        /*Navigator.push(
                           context,
                           MaterialPageRoute(
                               builder: (context) =>
-                                  listing_page_songs_2() ),
-                        );
+
+                               listing_page_songs_2(songName: list_song[index].songName, album:  list_song[index].album, songPath: list_song[index].songPath, albumImage: list_song[index].albumImage,cat_name:widget.cat_name,index_val: index,) ),
+                              //listing_page_songs_3(songName: list_song[index].songName, album:  list_song[index].album, songPath: list_song[index].songPath, albumImage: list_song[index].albumImage,cat_name:widget.cat_name) ),
+
+
+                        );*/
 
                       },
-                      title: musics[index].title,
-                      singer: musics[index].singer,
-                      image: musics[index].image,
+                      title: list_song[index].songName,
+                      albumname: list_song[index].album,
+                      image: "assets/rect.jpg",
                     )),
           ),
         ));
   }
 
+}
+
+class songlist {
+  String songId;
+  String songName;
+  String album;
+  String albumImage;
+  String songPath;
+  songlist(this.songId, this.songName, this.album, this.albumImage, this.songPath);
 
 }
+
