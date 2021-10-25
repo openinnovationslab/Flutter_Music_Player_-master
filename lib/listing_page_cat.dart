@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:audioplayers/audioplayers.dart';
@@ -27,9 +28,6 @@ import 'package:flutter/foundation.dart';
 
 import 'listing_page_songs_3.dart';
 
-
-
-
 /*void main() {
   runApp(MusicPlayer_list());
 }*/
@@ -37,15 +35,25 @@ import 'listing_page_songs_3.dart';
 
 class MusicPlayer_list extends StatefulWidget {
   String cat_name;
-  final String testID='gems_test';
   MusicPlayer_list({this.cat_name} );
-
   @override
   _MusicPlayerState createState() => _MusicPlayerState();
 }
 
 class _MusicPlayerState extends State<MusicPlayer_list> {
   List<songlist> list_song = [];
+  static const String iapId = 'android.test.purchased';
+  List<IAPItem> _items = [];
+
+
+  String songName, album, songPath, albumImage, cat_name;
+  int index;
+
+   StreamSubscription _purchaseUpdatedSubscription;
+   StreamSubscription _purchaseErrorSubscription;
+   StreamSubscription _conectionSubscription;
+
+
   bool isLoading = false;
 
   @override
@@ -56,27 +64,96 @@ class _MusicPlayerState extends State<MusicPlayer_list> {
 
   Future<void> initPlatformState() async {
     // prepare
-    var result = await FlutterInappPurchase.initConnection;
+    var result = await FlutterInappPurchase.instance.initConnection;
     print('result: $result');
-    // If the widget was removed from the tree while the asynchronous platform
-    // message was in flight, we want to discard the reply rather than calling
-    // setState to update our non-existent appearance.
     if (!mounted) return;
-    // refresh items for android
-    String msg = await FlutterInappPurchase.consumeAllItems;
-    print('consumeAllItems: $msg');
+    //String msg = await FlutterInappPurchase.instance.consumeAllItems;
+    //print('consumeAllItems: $msg');
+
+    try{
+       _purchaseUpdatedSubscription = FlutterInappPurchase.purchaseUpdated.listen((productItem) {
+         var purchaseStatus="";
+         if(productItem.purchaseStateAndroid != null) {
+            purchaseStatus = productItem.purchaseStateAndroid.toString();
+         }
+
+         else
+           purchaseStatus="";
+
+        if(purchaseStatus == "PurchaseState.purchased")
+        {
+          print("purchased");
+          /*Fluttertoast.showToast(
+             msg: "Item Purchased successfully",
+             toastLength: Toast.LENGTH_SHORT,
+             gravity: ToastGravity.BOTTOM,
+             timeInSecForIosWeb: 1,
+             backgroundColor: Colors.white,
+             textColor: Colors.black,
+             fontSize: 15.0);*/
+
+          /*Navigator.of(context).push(MaterialPageRoute(builder: (context) =>
+             listing_page_songs_2(songName: this.songName, album:  this.album, songPath: this.songPath, albumImage: this.albumImage,cat_name:this.cat_name,index_val:this.index,)
+         ) );*/
+
+        }
+        else{
+          print("error");
+        }
+      });
+
+      _purchaseErrorSubscription = FlutterInappPurchase.purchaseError.listen((purchaseError) {
+
+        print('purchase-error11: $purchaseError');
+        this.songName="";
+        this.album="";
+        this.songPath="";
+        this.albumImage="";
+        this.cat_name="";
+        this.index=0;
+      });
+
+      _purchaseErrorSubscription = FlutterInappPurchase.purchaseError.listen((purchaseError) {
+        print('purchase-error12: $purchaseError');
+        this.songName="";
+        this.album="";
+        this.songPath="";
+        this.albumImage="";
+        this.cat_name="";
+        this.index=0;
+
+
+      });
+
+    }
+    catch(e)
+    {
+      print(e);
+    }
+
+
 
     await getdata();
+    await _getProduct();
   }
 
 
-  Future<Null> _buySong(String songid) async {
+  Future<Null> _buySong(IAPItem item, String songName, String album, String songPath, String albumImage,  String cat_name, int index ) async
+  {
     try {
-      PurchasedItem purchased = await FlutterInappPurchase.buyProduct(songid);
-      //PurchasedItem purchased = await FlutterInappPurchase.instance.requestPurchase(songid);
-      print(purchased);
-      String msg = await FlutterInappPurchase.consumeAllItems;
-      print('consumeAllItems: $msg');
+      this.songName = songName;
+      this.album = album;
+      this.songPath = songPath;
+      this.albumImage = albumImage;
+      this.cat_name = cat_name;
+      this.index = index;
+      PurchasedItem purchased = await FlutterInappPurchase.instance.requestPurchase(item.productId.toString());
+      print("item purchased=>"+purchased.toString());
+
+
+
+      //String msg = await FlutterInappPurchase.instance.consumeAllItems;
+      //print('consumeAllItems: $msg');
     } catch (error) {
       print('$error');
     }
@@ -94,7 +171,8 @@ class _MusicPlayerState extends State<MusicPlayer_list> {
       'GameName': widget.cat_name
     });
     var jsonData = jsonDecode(response.body);
-    //print("list Response List----->" + response.body);
+    print("list Response List----->" + response.body);
+    print("list Response List----->");
 
     if (response.statusCode == 200) {
       List JsonData = jsonData['songList'];
@@ -108,6 +186,7 @@ class _MusicPlayerState extends State<MusicPlayer_list> {
               element["album"],
               element["albumImage"],
               element["songPath"],
+              element["isPaid"],
           ));
           isLoading = false;
         } );
@@ -136,6 +215,29 @@ class _MusicPlayerState extends State<MusicPlayer_list> {
       return false;
     }
   }
+
+
+  Future<Null> _getProduct() async {
+    List<IAPItem> items = await FlutterInappPurchase.instance.getProducts([iapId]);
+    for (var item in items) {
+      print(item.toString());
+      _items.add(item);
+    }
+    setState(() {
+      _items = items;
+    });
+  }
+
+  @override
+  void dispose() async {
+    super.dispose();
+  /*  _purchaseUpdatedSubscription?.cancel();
+    _purchaseUpdatedSubscription = null;
+    _purchaseErrorSubscription?.cancel();
+    _purchaseErrorSubscription = null;
+    await FlutterInappPurchase.instance.endConnection;*/
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -171,24 +273,21 @@ class _MusicPlayerState extends State<MusicPlayer_list> {
                 shrinkWrap: false,
                 itemBuilder: (context, index) => customListView_3(
                       onTap: () {
-                        _buySong(list_song[index].songId);
-                        //_buyProduct(list_song[index].songId);
-
-                        /*Navigator.push(
+                        list_song[index].is_Paid == true
+                         ? _buySong( _items[0] , list_song[index].songName, list_song[index].album, list_song[index].songPath,list_song[index].albumImage,widget.cat_name,index)
+                         :  Navigator.push(
                           context,
                           MaterialPageRoute(
                               builder: (context) =>
-
-                               listing_page_songs_2(songName: list_song[index].songName, album:  list_song[index].album, songPath: list_song[index].songPath, albumImage: list_song[index].albumImage,cat_name:widget.cat_name,index_val: index,) ),
-                              //listing_page_songs_3(songName: list_song[index].songName, album:  list_song[index].album, songPath: list_song[index].songPath, albumImage: list_song[index].albumImage,cat_name:widget.cat_name) ),
-
-
-                        );*/
-
+                                  listing_page_songs_2(songName: list_song[index].songName, album:  list_song[index].album, songPath: list_song[index].songPath, albumImage: list_song[index].albumImage,cat_name:widget.cat_name,index_val: index,) ),
+                          //listing_page_songs_3(songName: list_song[index].songName, album:  list_song[index].album, songPath: list_song[index].songPath, albumImage: list_song[index].albumImage,cat_name:widget.cat_name) ),
+                        );
                       },
                       title: list_song[index].songName,
                       albumname: list_song[index].album,
                       image: "assets/rect.jpg",
+                      is_Paid: list_song[index].is_Paid ,
+
                     )),
           ),
         ));
@@ -202,7 +301,8 @@ class songlist {
   String album;
   String albumImage;
   String songPath;
-  songlist(this.songId, this.songName, this.album, this.albumImage, this.songPath);
+  bool is_Paid;
+  songlist(this.songId, this.songName, this.album, this.albumImage, this.songPath, this.is_Paid);
 
 }
 

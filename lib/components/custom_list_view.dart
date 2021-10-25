@@ -5,7 +5,7 @@ Widget customListView({
   String title,
   String albumname,
   String image,
-  String tap,
+  bool is_Paid,
   onTap,
 }) {
   return InkWell(
@@ -57,11 +57,14 @@ Widget customListView({
               ],
             ),
             Spacer(),
-            /*Icon(
-              tap == "0" ? Icons.play_arrow : Icons.bar_chart_sharp,
-              color: Colors.white.withOpacity(0.6),
-              size: 16.0,
-            )*/
+            Visibility(
+              visible: is_Paid == true ? true : false,
+              child: Icon(
+                Icons.lock,
+                color: Colors.white.withOpacity(0.6),
+                size: 16.0,
+              ),
+            )
           ],
         ),
       ),

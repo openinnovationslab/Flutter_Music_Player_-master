@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_inapp_purchase/flutter_inapp_purchase.dart';
 import 'package:flutter_music_in_background/components/custom_list_view.dart';
 import 'package:flutter_music_in_background/model/Musics.dart';
 import 'package:flutter_svg/svg.dart';
@@ -25,6 +27,17 @@ class listing_page_songs_2 extends StatefulWidget {
 class _listing_page_songsState_2 extends State<listing_page_songs_2>
 {
 
+  static const String iapId = 'android.test.purchased';
+  List<IAPItem> _items = [];
+
+  StreamSubscription _purchaseUpdatedSubscription;
+  StreamSubscription _purchaseErrorSubscription;
+  StreamSubscription _conectionSubscription;
+
+  String songName, album, songPath, albumImage, cat_name;
+  int index;
+
+
   var str_title="",str_albumname="", str_url="", str_albumimagepath="", str_tap="";
   double val_pos;
   IconData btnIcon = Icons.play_arrow;
@@ -34,7 +47,7 @@ class _listing_page_songsState_2 extends State<listing_page_songs_2>
   Duration duration = new Duration();
   Duration position = new Duration();
 
-  //val_pos = position.inSeconds.toDouble();
+
 
   //9.Now add music player
   AudioPlayer audioPlayer = new AudioPlayer(mode: PlayerMode.MEDIA_PLAYER);
@@ -45,20 +58,14 @@ class _listing_page_songsState_2 extends State<listing_page_songs_2>
   int tappedIndex;
   bool isLoading = false;
 
-  int _selectedIndex = 0;
-
-  _onSelected(int index) {
-    setState(() => _selectedIndex = index);
-  }
 
   @override
   void initState() {
     super.initState();
-
     //audioPlayer.stop();
     //print("val->"+widget.index_val.toString());
-    tappedIndex = 0;
-    getdata();
+    initPlatformState();
+    //getdata();
     setState(() {
       str_title = widget.songName;
       str_albumname = widget.album;
@@ -126,12 +133,100 @@ class _listing_page_songsState_2 extends State<listing_page_songs_2>
           }
         }
       }
-
     });
-
 
   }
 
+  Future<void> initPlatformState() async {
+    // prepare
+    var result = await FlutterInappPurchase.instance.initConnection;
+    //print('result: $result');
+
+
+    if (!mounted) return;
+
+
+    _purchaseUpdatedSubscription = FlutterInappPurchase.purchaseUpdated.listen((productItem) {
+      var purchaseStatus = productItem.purchaseStateAndroid.toString();
+      if(purchaseStatus == "PurchaseState.purchased")
+      {
+        print("purchased");
+        /*Fluttertoast.showToast(
+            msg: "Item Purchased successfully",
+            toastLength: Toast.LENGTH_SHORT,
+            gravity: ToastGravity.BOTTOM,
+            timeInSecForIosWeb: 1,
+            backgroundColor: Colors.white,
+            textColor: Colors.black,
+            fontSize: 15.0);*/
+
+       /* setState(() {
+          str_title = this.songName;
+          str_albumname = this.album;
+          str_url = this.songPath;
+          str_albumimagepath= this.albumImage;
+          widget.index_val = this.index;
+        });
+
+        audioPlayer.stop();
+        setState(() {
+          btnIcon = Icons.play_arrow;
+          isPlaying = false;
+          seekToSecond_2(0);
+        });
+
+        Future.delayed(Duration(milliseconds: 800), () {
+          // Do something
+          playMusic_2(str_url);
+        });*/
+      }
+      else{
+        print("error");
+      }
+
+    });
+
+    _purchaseErrorSubscription = FlutterInappPurchase.purchaseError.listen((purchaseError) {
+
+      print('purchase-error11: $purchaseError');
+      this.songName="";
+      this.album="";
+      this.songPath="";
+      this.albumImage="";
+      this.cat_name="";
+      this.index=0;
+    });
+    _purchaseErrorSubscription = FlutterInappPurchase.purchaseError.listen((purchaseError) {
+      print('purchase-error12: $purchaseError');
+      this.songName="";
+      this.album="";
+      this.songPath="";
+      this.albumImage="";
+      this.cat_name="";
+      this.index=0;
+    });
+
+
+    await getdata();
+    await _getProduct();
+
+  }
+
+  Future<Null> _buySong(IAPItem item, String songName, String album, String songPath, String albumImage,  String cat_name, int index) async
+  {
+    try {
+      this.songName = songName;
+      this.album = album;
+      this.songPath = songPath;
+      this.albumImage = albumImage;
+      this.cat_name = cat_name;
+      this.index = index;
+      PurchasedItem purchased = await FlutterInappPurchase.instance.requestPurchase(item.productId.toString());
+      //print("item purchased=>"+purchased.toString());
+    } catch (error) {
+      print('$error');
+    }
+  }
 
   Future<void> getdata() async
   {
@@ -157,7 +252,8 @@ class _listing_page_songsState_2 extends State<listing_page_songs_2>
             element["songName"],
             element["album"],
             element["albumImage"],
-            element["songPath"]
+            element["songPath"],
+            element["isPaid"],
 
           ));
           isLoading = false;
@@ -196,12 +292,23 @@ class _listing_page_songsState_2 extends State<listing_page_songs_2>
     //print("url==>"+musics[0].image_url);
   }
 
+  Future<Null> _getProduct() async {
+    List<IAPItem> items = await FlutterInappPurchase.instance.getProducts([iapId]);
+    for (var item in items) {
+      print(item.toString());
+      _items.add(item);
+    }
+
+    setState(() {
+      _items = items;
+    });
+  }
+
   void seekToSecond(int second) {
     Duration newDuration = Duration(seconds: second);
     audioPlayer.seek(newDuration);
 
   }
-
 
   void seekToSecond_2(int second) {
     Duration newDuration = Duration(seconds: second);
@@ -217,7 +324,7 @@ class _listing_page_songsState_2 extends State<listing_page_songs_2>
   Widget build(BuildContext context) {
     return WillPopScope(
         onWillPop: () {
-      print('Backbutton pressed (device or appbar button), do whatever you want.');
+      //print('Backbutton pressed (device or appbar button), do whatever you want.');
       //audioPlayer.stop();
 
       //trigger leaving and use own data
@@ -362,34 +469,23 @@ class _listing_page_songsState_2 extends State<listing_page_songs_2>
                             icon: Icon(Icons.fast_rewind),
                             color: Colors.white54,
                             onPressed: () {
-                              int a = audioPlayer.getCurrentPosition() as int;
                               if(widget.index_val > 0)
                               {
                                 widget.index_val = widget.index_val-1;
-                                print("index->rewind"+widget.index_val.toString());
-                                setState(() {
+                                //audioPlayer.stop();
+
+                                if(widget.index_val != 1)
+                                {
+                                  //print("index->rewind"+widget.index_val.toString());
+                                  /*list_song[ widget.index_val].is_Paid == true
+                                ?_buySong( _items[0] , list_song[widget.index_val].songName, list_song[widget.index_val].album, list_song[widget.index_val].songPath,list_song[widget.index_val].albumImage,widget.cat_name,widget.index_val)
+                                :*/ setState(() {
                                   str_title = list_song[widget.index_val].songName;
                                   str_albumname = list_song[widget.index_val].album;
                                   str_url = list_song[widget.index_val].songPath;
                                   str_albumimagepath= list_song[widget.index_val].albumImage;
                                 });
 
-                                /*if(isPlaying)
-                                {
-                                  audioPlayer.pause();
-                                  setState(() {
-                                    btnIcon = Icons.play_arrow;
-                                    isPlaying = false;
-                                  });
-                                }else{
-                                  audioPlayer.resume();
-                                  setState(() {
-                                    btnIcon = Icons.pause;
-                                    isPlaying = true;
-                                  });
-                                }*/
-
-                                audioPlayer.stop();
                                 setState(() {
                                   btnIcon = Icons.play_arrow;
                                   isPlaying = false;
@@ -401,6 +497,8 @@ class _listing_page_songsState_2 extends State<listing_page_songs_2>
                                   print("url=>"+str_url);
                                   playMusic_2(str_url);
                                 });
+                                }
+
 
                               }
                             }
@@ -452,54 +550,44 @@ class _listing_page_songsState_2 extends State<listing_page_songs_2>
                           icon: Icon(Icons.fast_forward),
                           color: Colors.white54,
                           onPressed: () {
+
                             if(widget.index_val < list_song.length)
                             {
                               widget.index_val = widget.index_val+1;
-
-                              if(widget.index_val >= list_song.length)
+                              if(widget.index_val != 1)
                               {
-                                // nothing do
+                                if(widget.index_val >= list_song.length)
+                                {
+                                  // nothing do in this code
+                                }
+                                else{
+                                  print("index->forward->"+widget.index_val.toString());
+                                  audioPlayer.stop();
+
+                                  /*list_song[widget.index_val].is_Paid == true
+                                 ? _buySong( _items[0] , list_song[widget.index_val].songName, list_song[widget.index_val].album, list_song[widget.index_val].songPath,list_song[widget.index_val].albumImage,widget.cat_name,widget.index_val)
+                                 :*/ setState(() {
+                                    str_title = list_song[widget.index_val].songName;
+                                    str_albumname = list_song[widget.index_val].album;
+                                    str_url = list_song[widget.index_val].songPath;
+                                    str_albumimagepath= list_song[widget.index_val].albumImage;
+                                    //print("str_title"+str_title);
+                                  });
+
+
+                                  setState(() {
+                                    btnIcon = Icons.play_arrow;
+                                    isPlaying = false;
+                                    seekToSecond_2(0);
+                                  });
+
+                                  Future.delayed(Duration(milliseconds: 800), () {
+                                    // Do something
+                                    //print("url=>"+str_url);
+                                    playMusic_2(str_url);
+                                  });
+                                }
                               }
-                              else{
-                                //do
-                                print("index->forward->"+widget.index_val.toString());
-                                setState(() {
-                                  str_title = list_song[widget.index_val].songName;
-                                  str_albumname = list_song[widget.index_val].album;
-                                  str_url = list_song[widget.index_val].songPath;
-                                  str_albumimagepath= list_song[widget.index_val].albumImage;
-                                  //print("str_title"+str_title);
-                                });
-
-                                /*if(isPlaying)
-                              {
-                                audioPlayer.pause();
-                                setState(() {
-                                  btnIcon = Icons.play_arrow;
-                                  isPlaying = false;
-                                });
-                              }else{
-                                audioPlayer.resume();
-                                setState(() {
-                                  btnIcon = Icons.pause;
-                                  isPlaying = true;
-                                });
-                              }*/
-                                audioPlayer.stop();
-                                setState(() {
-                                  btnIcon = Icons.play_arrow;
-                                  isPlaying = false;
-                                  seekToSecond_2(0);
-                                });
-
-
-                                Future.delayed(Duration(milliseconds: 800), () {
-                                  // Do something
-                                  print("url=>"+str_url);
-                                  playMusic_2(str_url);
-                                });
-                              }
-
                             }
                           }
                         )
@@ -527,15 +615,16 @@ class _listing_page_songsState_2 extends State<listing_page_songs_2>
                       itemCount: list_song.length,
                       itemBuilder: (context, index) => customListView(
                         onTap: () {
-                          setState(() {
+                          list_song[index].is_Paid == true
+                              ? _buySong( _items[0],  list_song[index].songName, list_song[index].album, list_song[index].songPath,list_song[index].albumImage,widget.cat_name,index)
+
+                            :setState(() {
                             str_title = list_song[index].songName;
                             str_albumname = list_song[index].album;
                             str_url = list_song[index].songPath;
                             str_albumimagepath= list_song[index].albumImage;
-
                             //tappedIndex=index;
                             widget.index_val = index;
-
                             /*for(int i = 0; i<list_song.length; i++)
                             {
                               print("index=>"+index.toString());
@@ -550,7 +639,6 @@ class _listing_page_songsState_2 extends State<listing_page_songs_2>
                               }
 
                             }*/
-
                           });
                           audioPlayer.stop();
                           setState(() {
@@ -565,16 +653,17 @@ class _listing_page_songsState_2 extends State<listing_page_songs_2>
                             playMusic_2(str_url);
                           });
 
+
                         },
                         title: list_song[index].songName,
                         albumname: list_song[index].album,
                         image: list_song[index].albumImage,
+                        is_Paid: list_song[index].is_Paid,
                       )),
                 ),
           ]),
         )));
   }
-
 
   void playMusic(String url) async {
 
@@ -604,15 +693,23 @@ class _listing_page_songsState_2 extends State<listing_page_songs_2>
 
     //11
     audioPlayer.onDurationChanged.listen((event) {
-      setState(() {
-        duration = event;
-      });
+      if(mounted)
+        {
+          setState(() {
+            duration = event;
+          });
+        }
+
     });
 
     audioPlayer.onAudioPositionChanged.listen((event) {
-      setState(() {
-        position = event;
-      });
+      if(mounted)
+      {
+        setState(() {
+          position = event;
+        });
+      }
+
     });
   }
 
@@ -659,9 +756,15 @@ class _listing_page_songsState_2 extends State<listing_page_songs_2>
   }
 
 
-
-
-
+  @override
+  void dispose() async {
+    super.dispose();
+    /*_purchaseUpdatedSubscription?.cancel();
+    _purchaseUpdatedSubscription = null;
+    _purchaseErrorSubscription?.cancel();
+    _purchaseErrorSubscription = null;
+    await FlutterInappPurchase.instance.endConnection;*/
+  }
 
 }
 
@@ -671,8 +774,8 @@ class songlist {
   String album;
   String albumImage;
   String songPath;
-  //String tap;
-  songlist(this.songId, this.songName, this.album, this.albumImage, this.songPath);
+  bool is_Paid;
+  songlist(this.songId, this.songName, this.album, this.albumImage, this.songPath, this.is_Paid);
 
 }
 
